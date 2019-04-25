@@ -205,7 +205,9 @@ KBUILD_EXTRA_SYMBOLS +=$(OUT)/obj/vendor/qcom/opensource/audio-kernel/dsp/Module
 KBUILD_EXTRA_SYMBOLS +=$(OUT)/obj/vendor/qcom/opensource/audio-kernel/soc/Module.symvers
 endif
 
-ifdef CONFIG_SND_SOC_SDM660_CDC
+ifeq ($(KERNEL_BUILD), 1)
+	obj-y	+= bolero/
+	obj-y	+= wcd934x/
 	obj-y	+= sdm660_cdc/
 endif
 
