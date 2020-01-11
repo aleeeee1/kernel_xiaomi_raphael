@@ -1,15 +1,10 @@
-#
-# Fingerprint driver configuration
-#
-menuconfig INPUT_FINGERPRINT
-	bool "Fingerprints"
+config FINGERPRINT_GOODIX_FOD
+	tristate "Finger print card goodix fod"
+	depends on GOODIX_FINGERPRINT
 	help
-	  Say Y here, and a list of supported fingerprints will be displayed.
-	  This option doesn't affect the kernel.
+	  Say Y here to enable support for retrieving self-test reports.
 
-	  If unsure, say Y.
+	  If unsure, say N.
 
-if INPUT_FINGERPRINT
+	  To compile this driver as a module, choose M here.
 
-source "drivers/input/fingerprint/goodix_ta/Kconfig"
-endif
