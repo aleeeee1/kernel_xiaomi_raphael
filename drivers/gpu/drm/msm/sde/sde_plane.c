@@ -4185,6 +4185,7 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 		case PLANE_PROP_DCDIM:
 		case PLANE_PROP_INPUT_FENCE:
 		case PLANE_PROP_BLEND_OP:
+		case PLANE_PROP_FOD:
 			/* no special action required */
 			break;
 		case PLANE_PROP_FB_TRANSLATION_MODE:
