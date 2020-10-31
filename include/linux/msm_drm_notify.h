@@ -25,8 +25,8 @@ enum {
 	MSM_DRM_BLANK_UNBLANK,
 	/* panel: power off */
 	MSM_DRM_BLANK_POWERDOWN,
-	/* panel: low power mode */
-	MSM_DRM_BLANK_LP,
+	MSM_DRM_BLANK_LP1,
+	MSM_DRM_BLANK_LP2,
 };
 
 enum msm_drm_display_id {

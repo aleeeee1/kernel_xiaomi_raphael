@@ -25,6 +25,7 @@
 #include "msm_gem.h"
 #include "msm_fence.h"
 #include "sde_trace.h"
+#include "./sde/sde_connector.h"
 
 #define MULTIPLE_CONN_DETECTED(x) (x > 1)
 
@@ -245,6 +246,12 @@ msm_disable_outputs(struct drm_device *dev, struct drm_atomic_state *old_state)
 		DRM_DEBUG_ATOMIC("disabling [ENCODER:%d:%s]\n",
 				 encoder->base.id, encoder->name);
 
+		if (connector->state->crtc &&
+			connector->state->crtc->state->active_changed) {
+			blank = MSM_DRM_BLANK_POWERDOWN;
+			notifier_data.data = &blank;
+			notifier_data.id = crtc_idx;
+		}
 		/*
 		 * Each encoder has at most one connector (since we always steal
 		 * it away), so we won't call disable hooks twice.
@@ -464,6 +471,17 @@ static void msm_atomic_helper_commit_modeset_enables(struct drm_device *dev,
 		DRM_DEBUG_ATOMIC("enabling [ENCODER:%d:%s]\n",
 				 encoder->base.id, encoder->name);
 
+		if (kms && kms->funcs && kms->funcs->check_for_splash)
+			splash = kms->funcs->check_for_splash(kms);
+
+		if (splash || (connector->state->crtc &&
+			connector->state->crtc->state->active_changed)) {
+			blank = MSM_DRM_BLANK_UNBLANK;
+			notifier_data.data = &blank;
+			notifier_data.id =
+				connector->state->crtc->index;
+			DRM_DEBUG_ATOMIC("Notify early unblank\n");
+		}
 		/*
 		 * Each encoder has at most one connector (since we always steal
 		 * it away), so we won't call enable hooks twice.
