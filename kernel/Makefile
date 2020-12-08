@@ -119,7 +119,7 @@ obj-$(CONFIG_HAS_IOMEM) += memremap.o
 $(obj)/configs.o: $(obj)/config_data.h
 
 targets += config_data.gz
-$(obj)/config_data.gz: arch/arm64/configs/raphael-vts_defconfig FORCE
+$(obj)/config_data.gz: arch/arm64/configs/laurel_sprout-stock_defconfig FORCE
 	$(call if_changed,gzip)
 
 filechk_ikconfiggz = \
