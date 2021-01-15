@@ -1,4 +1,5 @@
 /* Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -319,6 +320,9 @@ static void msm_restart_prepare(const char *cmd)
 	if (in_panic) {
 		qpnp_pon_set_restart_reason(PON_RESTART_REASON_PANIC);
 	} else if (cmd != NULL) {
+#ifdef CONFIG_WT_BOOT_REASON
+		set_reset_magic(RESET_MAGIC_CMD_REBOOT);
+#endif
 		if (!strncmp(cmd, "bootloader", 10)) {
 			qpnp_pon_set_restart_reason(
 				PON_RESTART_REASON_BOOTLOADER);

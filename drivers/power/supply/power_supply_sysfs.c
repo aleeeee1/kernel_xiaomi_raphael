@@ -101,7 +101,9 @@ static ssize_t power_supply_show_property(struct device *dev,
 	const ptrdiff_t off = attr - power_supply_attrs;
 	union power_supply_propval value;
 
-	if (off == POWER_SUPPLY_PROP_TYPE) {
+	//if (off == POWER_SUPPLY_PROP_TYPE) {
+	if ((off == POWER_SUPPLY_PROP_TYPE)&&(strcmp(psy->desc->name, "usb"))){
+		//dev_err(dev, "WT desc->name=%s\n",psy->desc->name);
 		value.intval = psy->desc->type;
 	} else {
 		ret = power_supply_get_property(psy, off, &value);
@@ -397,6 +399,9 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(clear_soh),
 	POWER_SUPPLY_ATTR(force_recharge),
 	POWER_SUPPLY_ATTR(fcc_stepper_enable),
+	POWER_SUPPLY_ATTR(StopCharging_Test),
+	POWER_SUPPLY_ATTR(StartCharging_Test),
+	POWER_SUPPLY_ATTR(charging_call_state),
 	POWER_SUPPLY_ATTR(toggle_stat),
 	POWER_SUPPLY_ATTR(type_recheck),
 	POWER_SUPPLY_ATTR(liquid_detection),
@@ -519,6 +524,10 @@ int power_supply_uevent(struct device *dev, struct kobj_uevent_env *env)
 		struct device_attribute *attr;
 		const char *str;
 		char *line, *ustr;
+
+		if ((psy->desc->properties[j] == POWER_SUPPLY_PROP_STOPCHARGING_TEST)
+			|| (psy->desc->properties[j] == POWER_SUPPLY_PROP_STARTCHARGING_TEST))
+			continue;
 
 		attr = &power_supply_attrs[psy->desc->properties[j]];
 
