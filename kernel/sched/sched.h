@@ -2927,6 +2927,7 @@ enum sched_boost_policy {
 #define CONSERVATIVE_BOOST_DISABLE -2
 #define RESTRAINED_BOOST_DISABLE -3
 #define MAX_NUM_BOOST_TYPE (RESTRAINED_BOOST+1)
+extern int entity_eligible(struct cfs_rq *cfs_rq, struct sched_entity *se);
 
 /*
  * Returns the rq capacity of any rq in a group. This does not play
@@ -3291,7 +3292,6 @@ static inline void restore_cgroup_boost_settings(void) { }
 #endif
 
 extern int alloc_related_thread_groups(void);
-extern int entity_eligible(struct cfs_rq *cfs_rq, struct sched_entity *se);
 
 extern unsigned long all_cluster_ids[];
 
