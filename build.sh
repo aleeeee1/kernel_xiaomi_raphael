@@ -9,13 +9,12 @@ restore='\033[0m'
 clear
 
 # Resources
-export CLANG_PATH=~/tc/neutron-clang/bin
+export CLANG_PATH='/home/alee/toolchains/neutron-clang/bin'
 export PATH=${CLANG_PATH}:${PATH}
-export THINLTO_CACHE=~/ltocache/
-DEFCONFIG="raphael_defconfig"
+DEFCONFIG="vendor/laurel_sprout-perf_defconfig"
 
 # Kernel Details
-REV="R6.6"
+REV="R6.8"
 
 EDITION="BLACK"
 VER="$EDITION"-"$REV"
@@ -38,9 +37,7 @@ ZIP_MOVE=~/AK-releases
 # Functions
 function clean_all {
 		rm -rf $REPACK_DIR/Image* $REPACK_DIR/dtbo.img
-		cd $KERNEL_DIR
-		echo
-		make clean && make mrproper
+        rm -rf out
 }
 
 function make_kernel {
@@ -88,26 +85,10 @@ case "$cchoice" in
 esac
 done
 
-echo
 
-while read -p "Do you want to build?" dchoice
-do
-case "$dchoice" in
-	y|Y )
-		make_kernel
-                make_zip
-		break
-		;;
-	n|N )
-		break
-		;;
-	* )
-		echo
-		echo "Invalid try again!"
-		echo
-		;;
-esac
-done
+make_kernel
+# make_zip
+
 
 echo -e "${green}"
 echo "-------------------"
