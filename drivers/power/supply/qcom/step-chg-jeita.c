@@ -860,7 +860,7 @@ static int handle_jeita(struct step_chg_info *chip)
 			vote(chip->usb_icl_votable, JEITA_VOTER, false, 0);
 			vote(chip->dc_suspend_votable, JEITA_VOTER, 0, 0);
 		}
-	}
+
 
 set_jeita_fv:
 	vote(chip->fv_votable, JEITA_VOTER, fv_uv ? true : false, fv_uv);
