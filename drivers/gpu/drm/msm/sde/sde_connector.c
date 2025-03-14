@@ -596,34 +596,6 @@ static inline int _sde_connector_update_dirty_properties(
 	return 0;
 }
 
-void sde_connector_update_hbm(struct drm_connector *connector)
-{
-	static atomic_t effective_status = ATOMIC_INIT(false);
-	struct sde_crtc_state *cstate;
-	struct sde_connector *c_conn;
-	struct dsi_display *display;
-	bool status;
-
-	panel = sde_connector_panel(c_conn);
-	if (!panel)
-		return;
-
-	status = sde_connector_is_fod_enabled(c_conn);
-	if (status == dsi_panel_get_fod_ui(panel))
-		return;
-
-	cstate = to_sde_crtc_state(c_conn->encoder->crtc->state);
-	status = cstate->fod_dim_layer != NULL;
-	if (atomic_xchg(&effective_status, status) == status)
-		return;
-
-	mutex_lock(&display->panel->panel_lock);
-	dsi_panel_set_fod_hbm(display->panel, status);
-	mutex_unlock(&display->panel->panel_lock);
-
-	dsi_display_set_fod_ui(display, status);
-}
-
 int sde_connector_pre_kickoff(struct drm_connector *connector)
 {
 	struct sde_connector *c_conn;
@@ -657,19 +629,6 @@ int sde_connector_pre_kickoff(struct drm_connector *connector)
 	params.hdr_meta = &c_state->hdr_meta;
 
 	SDE_EVT32_VERBOSE(connector->base.id);
-
-	if (c_conn->connector_type == DRM_MODE_CONNECTOR_DSI)
-		sde_connector_pre_update_fod_hbm(c_conn);
-
-	dc_dim = sde_connector_panel(c_conn)->dc_dim;
-	was_dcdim = sde_connector_panel(c_conn)->was_dc_dim;
-	if (!was_dcdim && dc_dim) {
-		_sde_connector_update_bl_scale(c_conn);
-		sde_connector_panel(c_conn)->was_dc_dim = true;
-	} else if (was_dcdim && !dc_dim) {
-		_sde_connector_update_bl_scale(c_conn);
-		sde_connector_panel(c_conn)->was_dc_dim = false;
-	}
 
 	rc = c_conn->ops.pre_kickoff(connector, c_conn->display, &params);
 
