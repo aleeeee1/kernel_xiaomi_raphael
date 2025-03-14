@@ -801,7 +801,6 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		rc = -ENOTSUPP;
 	}
 
-	bl->real_bl_level = bl_lvl;
 	panel->fod_dim_alpha = dsi_panel_get_fod_dim_alpha(panel);
 
 	return rc;
@@ -2505,7 +2504,6 @@ static int dsi_panel_parse_bl_config(struct dsi_panel *panel)
 
 	panel->bl_config.bl_scale = MAX_BL_SCALE_LEVEL;
 	panel->bl_config.bl_scale_ad = MAX_AD_BL_SCALE_LEVEL;
-	panel->bl_config.real_bl_level = 0;
 
 	rc = utils->read_u32(utils->data, "qcom,mdss-dsi-bl-min-level", &val);
 	if (rc) {
