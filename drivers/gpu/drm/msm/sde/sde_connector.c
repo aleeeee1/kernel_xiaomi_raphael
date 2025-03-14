@@ -596,26 +596,14 @@ static inline int _sde_connector_update_dirty_properties(
 	return 0;
 }
 
-static bool sde_connector_is_fod_enabled(struct sde_connector *c_conn)
+extern bool is_dimlayer_hbm_enabled;
+bool last_dimlayer_hbm_enabled;
+bool last_dimlayer_status;
+void sde_connector_update_hbm(struct drm_connector *connector)
 {
-	struct drm_connector *connector = &c_conn->base;
-
-	if (!connector->state || !connector->state->crtc)
-		return false;
-
-	return sde_crtc_is_fod_enabled(connector->state->crtc->state);
-}
-
-struct dsi_panel *sde_connector_panel(struct sde_connector *c_conn)
-{
-	struct dsi_display *display = (struct dsi_display *)c_conn->display;
-
-	return display ? display->panel : NULL;
-}
-
-static inline void sde_connector_pre_update_fod_hbm(struct sde_connector *c_conn)
-{
-	struct dsi_panel *panel;
+	struct sde_crtc_state *cstate;
+	struct sde_connector *c_conn;
+	struct dsi_display *display;
 	bool status;
 
 	panel = sde_connector_panel(c_conn);
@@ -626,12 +614,22 @@ static inline void sde_connector_pre_update_fod_hbm(struct sde_connector *c_conn
 	if (status == dsi_panel_get_fod_ui(panel))
 		return;
 
-	dsi_panel_set_fod_hbm(panel, status);
+	cstate = to_sde_crtc_state(c_conn->encoder->crtc->state);
+	status = cstate->fod_dim_layer != NULL;
 
-	dsi_panel_set_fod_ui(panel, status);
+	if (last_dimlayer_hbm_enabled == is_dimlayer_hbm_enabled &&
+			status == last_dimlayer_status)
+		return;
 
-	if (!status)
-		_sde_connector_update_bl_scale(c_conn);
+	mutex_lock(&display->panel->panel_lock);
+	dsi_panel_set_fod_hbm(display->panel,
+			status ? is_dimlayer_hbm_enabled : false);
+	last_dimlayer_hbm_enabled = is_dimlayer_hbm_enabled;
+	last_dimlayer_status = status;
+	mutex_unlock(&display->panel->panel_lock);
+
+	dsi_display_set_fod_ui(display,
+			status ? is_dimlayer_hbm_enabled : false);
 }
 
 int sde_connector_pre_kickoff(struct drm_connector *connector)
