@@ -101,15 +101,8 @@ static int sde_backlight_device_update_status(struct backlight_device *bd)
 	bl_lvl = mult_frac(brightness, display->panel->bl_config.bl_max_level,
 			display->panel->bl_config.brightness_max_level);
 
-		/* map UI brightness into driver backlight level rounding it */
-		bl_lvl = bl_min + DIV_ROUND_CLOSEST((brightness - 1) * bl_range,
-			display->panel->bl_config.brightness_max_level - 1);
-	} else {
-		bl_lvl = 0;
-	}
-
-	if (bl_lvl > 2047)
-		bl_lvl = 4095;
+	if (!bl_lvl && brightness)
+		bl_lvl = 1;
 
 	if (!c_conn->allow_bl_update) {
 		c_conn->unset_bl_level = bl_lvl;

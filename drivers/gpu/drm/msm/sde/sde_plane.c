@@ -268,9 +268,15 @@ bool sde_plane_is_sec_ui_allowed(struct drm_plane *plane)
 	return !(psde->features & BIT(SDE_SSPP_BLOCK_SEC_UI));
 }
 
-static void sde_plane_setup_src_split_order(struct sde_plane *psde,
+void sde_plane_setup_src_split_order(struct drm_plane *plane,
 		enum sde_sspp_multirect_index rect_mode, bool enable)
 {
+	struct sde_plane *psde;
+
+	if (!plane)
+		return;
+
+	psde = to_sde_plane(plane);
 	if (psde->pipe_hw->ops.set_src_split_order)
 		psde->pipe_hw->ops.set_src_split_order(psde->pipe_hw,
 					rect_mode, enable);
@@ -4093,7 +4099,6 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 	struct drm_crtc *crtc;
 	struct drm_framebuffer *fb;
 	struct sde_rect src, dst;
-	bool is_rt;
 	bool q16_data = true;
 	int idx;
 
@@ -4164,14 +4169,11 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 		case PLANE_PROP_V_DECIMATE:
 		case PLANE_PROP_SRC_CONFIG:
 		case PLANE_PROP_ZPOS:
-		case PLANE_PROP_FOD:
 		case PLANE_PROP_EXCL_RECT_V1:
 			pstate->dirty |= SDE_PLANE_DIRTY_RECTS;
 			break;
 		case PLANE_PROP_CSC_V1:
 		case PLANE_PROP_CSC_DMA_V1:
-		case PLANE_PROP_FOD:
-			pstate->dirty |= SDE_PLANE_DIRTY_CSC;
 		case PLANE_PROP_INVERSE_PMA:
 			pstate->dirty |= SDE_PLANE_DIRTY_FORMAT;
 			break;
@@ -4182,7 +4184,6 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 			break;
 		case PLANE_PROP_INFO:
 		case PLANE_PROP_ALPHA:
-		case PLANE_PROP_DCDIM:
 		case PLANE_PROP_INPUT_FENCE:
 		case PLANE_PROP_BLEND_OP:
 		case PLANE_PROP_FOD:
@@ -4233,33 +4234,21 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 	_sde_plane_sspp_atomic_check_mode_changed(psde, state,
 								old_state);
 
-	_set_plane_set_fod_dim_alpha(psde, pstate);
-	_sde_plane_set_csc_pcc(psde, pstate, crtc);
-
 	/* re-program the output rects always if partial update roi changed */
 	if (sde_crtc_is_crtc_roi_dirty(crtc->state))
 		pstate->dirty |= SDE_PLANE_DIRTY_RECTS;
-
-	if (pstate->dirty & SDE_PLANE_DIRTY_SRC_SPLIT_ORDER)
-		sde_plane_setup_src_split_order(psde, pstate->multirect_index,
-						pstate->pipe_order_flags);
 
 	if (pstate->dirty & SDE_PLANE_DIRTY_RECTS)
 		memset(&(psde->pipe_cfg), 0, sizeof(struct sde_hw_pipe_cfg));
 
 	_sde_plane_set_scanout(plane, pstate, &psde->pipe_cfg, fb);
 
-	is_rt = sde_crtc_get_client_type(crtc) != NRT_CLIENT;
-	if (is_rt != psde->is_rt_pipe) {
-		psde->is_rt_pipe = is_rt;
-		pstate->dirty |= SDE_PLANE_DIRTY_QOS;
-	}
-
 	/* early out if nothing dirty */
 	if (!pstate->dirty)
 		return 0;
 	pstate->pending = true;
 
+	psde->is_rt_pipe = (sde_crtc_get_client_type(crtc) != NRT_CLIENT);
 	_sde_plane_set_qos_ctrl(plane, false, SDE_PLANE_QOS_PANIC_CTRL);
 
 	/* update secure session flag */
@@ -4432,6 +4421,12 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 					psde->pipe_hw, &pstate->sc_cfg);
 		}
 
+		/* update csc */
+		if (SDE_FORMAT_IS_YUV(fmt))
+			_sde_plane_setup_csc(psde);
+		else
+			psde->csc_ptr = 0;
+
 		if (psde->pipe_hw->ops.setup_inverse_pma) {
 			uint32_t pma_mode = 0;
 
@@ -4442,10 +4437,11 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 			psde->pipe_hw->ops.setup_inverse_pma(psde->pipe_hw,
 				pstate->multirect_index, pma_mode);
 		}
-	}
 
-	if (pstate->dirty & SDE_PLANE_DIRTY_CSC)
-		_sde_plane_update_csc(psde, pstate, fmt);
+		if (psde->pipe_hw->ops.setup_dgm_csc)
+			psde->pipe_hw->ops.setup_dgm_csc(psde->pipe_hw,
+				pstate->multirect_index, psde->csc_usr_ptr);
+	}
 
 	sde_color_process_plane_setup(plane);
 
@@ -4461,11 +4457,8 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 				&psde->sharp_cfg);
 	}
 
-	if (pstate->dirty & (SDE_PLANE_DIRTY_QOS | SDE_PLANE_DIRTY_RECTS |
-			     SDE_PLANE_DIRTY_FORMAT)) {
-		_sde_plane_set_qos_lut(plane, fb);
-		_sde_plane_set_danger_lut(plane, fb);
-	}
+	_sde_plane_set_qos_lut(plane, fb);
+	_sde_plane_set_danger_lut(plane, fb);
 
 	if (plane->type != DRM_PLANE_TYPE_CURSOR) {
 		_sde_plane_set_qos_ctrl(plane, true, SDE_PLANE_QOS_PANIC_CTRL);
@@ -4474,8 +4467,7 @@ static int sde_plane_sspp_atomic_update(struct drm_plane *plane,
 			_sde_plane_set_ts_prefill(plane, pstate);
 	}
 
-	if (pstate->dirty & SDE_PLANE_DIRTY_QOS)
-		_sde_plane_set_qos_remap(plane);
+	_sde_plane_set_qos_remap(plane);
 
 	/* clear dirty */
 	pstate->dirty = 0x0;

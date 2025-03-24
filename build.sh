@@ -31,7 +31,7 @@ export KBUILD_BUILD_HOST=KREMLIN
 
 # Paths
 KERNEL_DIR=`pwd`
-REPACK_DIR=~/AnyKernel3
+REPACK_DIR=$KERNEL_DIR/AnyKernel3
 ZIP_MOVE=~/AK-releases
 
 # Functions
@@ -43,7 +43,7 @@ function clean_all {
 function make_kernel {
 		echo
 		make LLVM=1 LLVM_IAS=1 CC="ccache clang" $DEFCONFIG
-		make LLVM=1 LLVM_IAS=1 CC="ccache clang" -j$(grep -c ^processor /proc/cpuinfo)
+		make LLVM=1 LLVM_IAS=1 CC="ccache clang" -j$(grep -c ^processor /proc/cpuinfo) Image.gz-dtb dtbo.img
 
 }
 
@@ -52,8 +52,6 @@ function make_zip {
                 cp out/arch/arm64/boot/dtbo.img $REPACK_DIR
 		cd $REPACK_DIR
 		zip -r9 `echo $ZIP_NAME`.zip *
-		mv  `echo $ZIP_NAME`*.zip $ZIP_MOVE
-		cd $KERNEL_DIR
 }
 
 DATE_START=$(date +"%s")
@@ -87,7 +85,7 @@ done
 
 
 make_kernel
-# make_zip
+make_zip
 
 
 echo -e "${green}"

@@ -1119,8 +1119,6 @@ int dsi_phy_set_clk_freq(struct msm_dsi_phy *phy,
  * @phy:          DSI PHY handle
  * @timing:       array holding timing params.
  * @size:         size of the array.
- * @commit:		  boolean to indicate if programming PHY HW registers is
- *				  required
  *
  * When PHY timing calculator is not implemented, this array will be used to
  * pass PHY timing information.
@@ -1128,12 +1126,12 @@ int dsi_phy_set_clk_freq(struct msm_dsi_phy *phy,
  * Return: error code.
  */
 int dsi_phy_set_timing_params(struct msm_dsi_phy *phy,
-			      u32 *timing, u32 size, bool commit)
+			      u32 *timing, u32 size)
 {
 	int rc = 0;
 
 	if (!phy || !timing || !size) {
-		pr_debug("Invalid params\n");
+		pr_err("Invalid params\n");
 		return -EINVAL;
 	}
 
@@ -1141,16 +1139,13 @@ int dsi_phy_set_timing_params(struct msm_dsi_phy *phy,
 
 	if (phy->hw.ops.phy_timing_val)
 		rc = phy->hw.ops.phy_timing_val(&phy->cfg.timing, timing, size);
-
 	if (!rc)
 		phy->cfg.is_phy_timing_present = true;
-
-	if (phy->hw.ops.commit_phy_timing && commit)
-		phy->hw.ops.commit_phy_timing(&phy->hw, &phy->cfg.timing);
 
 	mutex_unlock(&phy->phy_lock);
 	return rc;
 }
+
 
 /**
  * dsi_phy_conv_phy_to_logical_lane() - Convert physical to logical lane
